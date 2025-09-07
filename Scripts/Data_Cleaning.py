@@ -103,10 +103,11 @@ def clean_dataframe(df: pd.DataFrame, columns_to_clean: list, stop_words: list =
         df['unique_id'] = range(len(df))
     
     return df
-
+"""
 # Test cleaning logic
 df = pd.read_excel('Data/Input/Input_Data.xlsx')
 # Assume file has exactly 2 columns from user
 cols_to_clean = df.columns[:2].tolist()
 cleaned_df = clean_dataframe(df, cols_to_clean)
 cleaned_df.to_excel('Data/Cleaned_Input/cleaned_output.xlsx', index=False)
+"""
