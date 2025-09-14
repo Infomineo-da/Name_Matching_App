@@ -65,8 +65,14 @@ st.write("You selected:", matching_method)
 # Wrap text_area + button in a form
 with st.form("stop_words_form"):
     stop_words = st.text_area(
-        "**Enter stop words to be ignored** (comma separated):",
-        placeholder="e.g. ltd, inc, corp, CO"
+    "**Enter words that should be excluded from the comparison** (comma separated):",
+    placeholder="e.g. station, fuel, gas, corp, ltd, inc, group, university, hospital, restaurant"
+    )
+    st.caption(
+    "These are common or irrelevant terms that don’t change the identity of the name:\n"
+    "- For gas stations → station, fuel, gas, etc.\n"
+    "- For companies → corp, ltd, inc, co, group, etc.\n"
+    "- For hospitals → hospital, clinic, medical center, etc.\n"
     )
     submitted = st.form_submit_button(label="Proceed..")
 

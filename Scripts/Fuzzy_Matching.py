@@ -1,4 +1,4 @@
-from thefuzz import fuzz
+from fuzzywuzzy import fuzz
 from collections import defaultdict
 from joblib import Parallel, delayed
 from tqdm import tqdm
