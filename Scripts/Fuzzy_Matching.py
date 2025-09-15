@@ -32,8 +32,8 @@ def exact_match(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
     
     # Remove duplicates keeping the best match for both df1 and df2
     stage1_matches = stage1_matches.sort_values('temp_id_x')
-    stage1_matches = stage1_matches.drop_duplicates(subset=['temp_id_x'], keep='first')
-    stage1_matches = stage1_matches.drop_duplicates(subset=['temp_id_y'], keep='first')
+    #stage1_matches = stage1_matches.drop_duplicates(subset=['temp_id_x'], keep='first')
+    #stage1_matches = stage1_matches.drop_duplicates(subset=['temp_id_y'], keep='first')
     stage1_matches["match_score"] = 100
     stage1_matches["match_type"] = "primary key"
 
@@ -55,8 +55,8 @@ def exact_match(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
     
     # Remove duplicates keeping the best match for both sides
     stage2_matches = stage2_matches.sort_values('temp_id_x')
-    stage2_matches = stage2_matches.drop_duplicates(subset=['temp_id_x'], keep='first')
-    stage2_matches = stage2_matches.drop_duplicates(subset=['temp_id_y'], keep='first')
+    #stage2_matches = stage2_matches.drop_duplicates(subset=['temp_id_x'], keep='first')
+    #stage2_matches = stage2_matches.drop_duplicates(subset=['temp_id_y'], keep='first')
     stage2_matches["match_score"] = 99
     stage2_matches["match_type"] = "sorted key"
 
@@ -256,7 +256,7 @@ def build_final_output(df1, matched_exact, matched_fuzzy):
             'match_type': 'unmatched'
         })
         final_output = pd.concat([final_output, unmatched_df], ignore_index=True)
-    
+    final_output.drop_duplicates(inplace=True)
     return final_output
 
 
