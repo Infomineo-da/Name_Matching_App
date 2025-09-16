@@ -50,14 +50,16 @@ with icon:
     with st.popover("❓"):
         st.markdown("""
         #### **Choose the matching methodology**
-        ##### **➡FuzzyWuzzy**
+        ##### **➡ FuzzyWuzzy**
         It works well for detecting spelling differences, rearrangements, and partial matches, making it effective for cases where text values are similar but not identical.
         - **Ratio** -> When you want a strict comparison of the entire string. Best if the strings are already normalized/cleaned and order matters.
         - **Partial_Ratio** -> When one string may be embedded inside another. Good for matching short forms against long descriptions.
         - **Token_Sort_Ratio** -> When the strings have the same words but in different orders.
         - **Token_Set_Ratio** -> When strings share a common subset of words but one has extra info. Best for messy data with additional descriptive words.
-        ##### **➡Semantic Matching**
+        ##### **➡ Semantic Matching**
         - **SentenceTransformer** -> It's effective for understanding context, synonyms, and paraphrases. learned from billions of sentences.
+        ##### **Disclaimer**: 
+        Sentence transformers capture semantic meaning but may over-match by treating related concepts as equivalent, leading to false positives. Fuzzy matching, on the other hand, focuses on text similarity but may under-match when the same concept is expressed in different wording.
         """)
 
 st.write("You selected:", matching_method)
@@ -104,23 +106,42 @@ if uploaded_file and submitted:
         
         st.success('Stage 1/3: Data cleaning completed!')
         
-        # Display results in two columns
+        # Display cleaning statistics
+        st.write("📊 Cleaning Statistics:")
         col1, col2 = st.columns(2)
         with col1:
-            st.write(f"Cleaned Data for {cols[0]}")
-            st.dataframe(cleaned_df1.head())
+            # Count only non-empty original records
+            total_records = df1[cols[0]].notna().sum()
+            cleaned_records = len(cleaned_df1)
+            removed_records = total_records - cleaned_records
+            st.metric(f"Column 1: {cols[0]}", 
+                     f"{cleaned_records:,} records cleaned",
+                     f"{removed_records:,} removed")
         with col2:
-            st.write(f"Cleaned Data for {cols[1]}")
-            st.dataframe(cleaned_df2.head())
+            # Count only non-empty original records
+            total_records = df2[cols[1]].notna().sum()
+            cleaned_records = len(cleaned_df2)
+            removed_records = total_records - cleaned_records
+            st.metric(f"Column 2: {cols[1]}", 
+                     f"{cleaned_records:,} records cleaned",
+                     f"{removed_records:,} removed")
 
     # Stage 2: Exact Matching
     with st.spinner('Stage 2/3: Performing exact matching...'):
         try:
             matched_df, unmatched_df = exact_match(cleaned_df1, cleaned_df2)
             st.success('Stage 2/3: Exact matching completed!')
-            st.write(f"Exact/Sorted key matching results:")
-            st.dataframe(matched_df.head())
-            #unmatched_df.to_excel('Data/Output/unmatched_exact.xlsx', index=False)
+            
+            # Display exact matching statistics
+            st.write("📊 Exact Matching Statistics:")
+            col1, col2 = st.columns(2)
+            with col1:
+                primary_matches = len(matched_df[matched_df['match_type'] == 'primary key'])
+                st.metric("Exact Matches", f"{primary_matches:,} records")
+            with col2:
+                sorted_matches = len(matched_df[matched_df['match_type'] == 'sorted key'])
+                st.metric("Sorted Key Matches", f"{sorted_matches:,} records")
+            
             matched_df.to_excel('Data/Output/matched_exact.xlsx', index=False)
         except Exception as e:
             st.error(f"⚠️ Stage 2 failed: {e}")
@@ -146,8 +167,25 @@ if uploaded_file and submitted:
                 match_type = "fuzzy"
             
             st.success('Stage 3/3: Advanced matching completed!')
-            st.write(f"{match_type.capitalize()} matching results:")
-            st.dataframe(stage3_matches.head())
+            
+            # Display advanced matching statistics
+            st.write(f"📊 {match_type.capitalize()} Matching Statistics:")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                advanced_matches = len(stage3_matches)
+                st.metric(f"{match_type.capitalize()} Matches", 
+                         f"{advanced_matches:,} records")
+            with col2:
+                if not stage3_matches.empty:
+                    avg_score = stage3_matches['match_score'].mean()
+                    st.metric("Average Match Score", 
+                            f"{avg_score:.1f}%")
+            with col3:
+                if not stage3_matches.empty:
+                    high_quality = len(stage3_matches[stage3_matches['match_score'] >= 90])
+                    st.metric("High Quality Matches (≥90%)", 
+                            f"{high_quality:,} records")
+            
             stage3_matches.to_excel(f'Data/Output/matched_{match_type}.xlsx', index=False)
         except Exception as e:
             st.error(f"⚠️ Stage 3 failed: {e}")

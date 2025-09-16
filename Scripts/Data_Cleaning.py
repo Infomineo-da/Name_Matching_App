@@ -41,7 +41,6 @@ def clean_text(name: str, stop_words: list = None) -> str:
 
     # 1. Convert to uppercase for consistent processing
     cleaned = name.upper()
-
     # 2. Perform replacements BEFORE removing special characters
     for old, new in REPLACEMENTS.items():
         if old == "&":
@@ -85,7 +84,7 @@ def clean_dataframe(df: pd.DataFrame, columns_to_clean: list, stop_words: list =
     """
     # Create a copy to avoid modifying the original
     df = df.copy()
-    
+    df = df.drop_duplicates()
     # Clean the specified columns
     for col in columns_to_clean:
         if col not in df.columns:

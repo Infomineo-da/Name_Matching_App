@@ -6,7 +6,7 @@ import numpy as np
 
 # Constants
 #MODEL_NAME = 'all-MiniLM-L6-v2'  # Fast and efficient model with good performance
-MODEL_NAME = 'all-mpnet-base-v2'  # Fast and efficient model with good performance
+MODEL_NAME = 'all-mpnet-base-v2'  
 
 SEMANTIC_MATCH_THRESHOLD = 75  # Score threshold for accepting matches (0-100 scale)
 
