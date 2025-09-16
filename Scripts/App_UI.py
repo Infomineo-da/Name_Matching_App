@@ -192,7 +192,23 @@ if uploaded_file and submitted:
             st.stop()
     try:
         final = build_final_output(cleaned_df1,matched_df,stage3_matches)
-        st.write(f"Final results:")
+        
+        # Calculate and display total matching statistics
+        st.write("📊 Overall Matching Results:")
+        total_records = len(cleaned_df1)
+        matched_records = len(final[final['match_type'] != 'unmatched'])
+        match_rate = (matched_records / total_records * 100) if total_records > 0 else 0
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Records", f"{total_records:,}")
+        with col2:
+            st.metric("Total Matched", f"{matched_records:,}")
+        with col3:
+            st.metric("Match Rate", f"{match_rate:.1f}%")
+            
+        st.write("---")  # Add a visual separator
+        st.write("Final results preview:")
         st.dataframe(final.head())
         final.to_excel('Data/Output/matched_final.xlsx', index=False)
 
