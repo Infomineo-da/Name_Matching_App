@@ -149,9 +149,16 @@ def find_best_fuzzy_match(client_row_tuple, df2, blocks, col1_cleaned, col2_clea
         return None
 
 
-def fuzzy_match_blocking(unmatched_df, df2, method="token_set_ratio", threshold=80):
+def fuzzy_match_blocking(unmatched_df, df2, method="token_set_ratio", threshold=80, progress_callback=None):
     """
     Fuzzy match unmatched_df (df1) against df2 with blocking and parallelization.
+    
+    Args:
+        unmatched_df (pd.DataFrame): DataFrame with unmatched records
+        df2 (pd.DataFrame): Reference DataFrame to match against
+        method (str): Fuzzy matching method to use
+        threshold (float): Minimum score to consider a match valid
+        progress_callback (callable): Function to call with progress updates (0-100) and status message
     """
     col1_cleaned = [c for c in unmatched_df.columns if c.endswith("_cleaned")][0]
     col1_sorted = [c for c in unmatched_df.columns if c.endswith("_sorted")][0]
@@ -161,19 +168,27 @@ def fuzzy_match_blocking(unmatched_df, df2, method="token_set_ratio", threshold=
     unmatched_df[col1_cleaned] = unmatched_df[col1_cleaned].fillna("").astype(str)
     df2[col2_cleaned] = df2[col2_cleaned].fillna("").astype(str)
 
+    if progress_callback:
+        progress_callback(10, "🔄 Creating search blocks...")
+    
     # Build blocks on df2
     blocks = build_blocks(df2, col2_cleaned)
 
-    # Run parallel fuzzy matching
-    fuzzy_results = Parallel(n_jobs=-1)(
-        delayed(find_best_fuzzy_match)(
-            row, df2, blocks, col1_cleaned, col2_cleaned, method, threshold
-        ) for row in tqdm(
-            unmatched_df[[col1_cleaned, col1_sorted, "unique_id"]].itertuples(),
-            total=len(unmatched_df),
-            desc="Fuzzy Matching"
-        )
-    )
+    if progress_callback:
+        progress_callback(30, "🔄 Starting fuzzy matching process...")
+
+    # Run parallel fuzzy matching with progress updates
+    total_records = len(unmatched_df)
+    fuzzy_results = []
+    
+    for i, row in enumerate(unmatched_df[[col1_cleaned, col1_sorted, "unique_id"]].itertuples()):
+        result = find_best_fuzzy_match(row, df2, blocks, col1_cleaned, col2_cleaned, method, threshold)
+        fuzzy_results.append(result)
+        
+        if progress_callback and i % max(1, total_records // 20) == 0:  # Update progress every 5%
+            progress = int(30 + (i / total_records * 60))  # Progress from 30% to 90%
+            records_done = i + 1
+            progress_callback(progress, f"🔄 Processing records... ({records_done:,}/{total_records:,})")
 
     # Filter results
     successful = [res for res in fuzzy_results if res is not None]

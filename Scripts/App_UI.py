@@ -42,7 +42,7 @@ with dropdown:
     matching_method = st.selectbox(
         "**Choose a matching technique**:",
         ["ratio", "partial_ratio", "token_sort_ratio", "token_set_ratio",
-         "Semantic Matching (SentenceTransformer)"]
+         "Semantic Matching"]
     )
 with icon:
     # Push popover down a bit to alighn with the title
@@ -146,25 +146,36 @@ if uploaded_file and submitted:
         except Exception as e:
             st.error(f"⚠️ Stage 2 failed: {e}")
             st.stop()
-
     # Stage 3: Advanced Matching (Fuzzy or Semantic)
     with st.spinner(f'Stage 3/3: Performing {matching_method} matching...'):
         try:
-            if matching_method == "Semantic Matching (SentenceTransformer)":
+            # Set up progress tracking
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            if matching_method == "Semantic Matching":
+                status_text.text("🔄 Loading model and generating embeddings...")
                 stage3_matches = semantic_match_blocking(
                     unmatched_df,   # df1 records left unmatched
                     cleaned_df2,    # full df2 reference
-                    threshold=75    # adjust threshold as needed
+                    threshold=75,    # adjust threshold as needed
+                    progress_callback=lambda p, msg: (progress_bar.progress(p), status_text.text(msg))
                 )
                 match_type = "semantic"
             else:
+                status_text.text("🔄 Preparing fuzzy matching...")
                 stage3_matches = fuzzy_match_blocking(
                     unmatched_df,   # df1 records left unmatched
                     cleaned_df2,    # full df2 reference
                     method=matching_method,  
-                    threshold=80    # adjust threshold as needed
+                    threshold=80,    # adjust threshold as needed
+                    progress_callback=lambda p, msg: (progress_bar.progress(p), status_text.text(msg))
                 )
                 match_type = "fuzzy"
+            
+            # Clear progress indicators after completion
+            progress_bar.empty()
+            status_text.empty()
             
             st.success('Stage 3/3: Advanced matching completed!')
             
@@ -219,7 +230,7 @@ if uploaded_file and submitted:
         st.download_button(
             label="📥 Download Final Matched File",
             data=output_buffer,
-            file_name="matched_final.xlsx",
+            file_name=f'matched_{matching_method}.xlsx',
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     except Exception as e:

@@ -10,7 +10,7 @@ MODEL_NAME = 'all-mpnet-base-v2'
 
 SEMANTIC_MATCH_THRESHOLD = 75  # Score threshold for accepting matches (0-100 scale)
 
-def semantic_match_blocking(unmatched_df, df2, threshold=SEMANTIC_MATCH_THRESHOLD):
+def semantic_match_blocking(unmatched_df, df2, threshold=SEMANTIC_MATCH_THRESHOLD, progress_callback=None):
     """
     Perform semantic matching using SentenceTransformers with reciprocal validation.
     Similar interface to fuzzy_match_blocking but uses neural embeddings instead.
@@ -19,6 +19,7 @@ def semantic_match_blocking(unmatched_df, df2, threshold=SEMANTIC_MATCH_THRESHOL
         unmatched_df (pd.DataFrame): DataFrame with unmatched records from df1
         df2 (pd.DataFrame): Reference DataFrame to match against
         threshold (float): Minimum score (0-100) to consider a match valid
+        progress_callback (callable): Function to call with progress updates (0-100) and status message
         
     Returns:
         pd.DataFrame: DataFrame containing the matches found with scores and metadata
@@ -33,19 +34,25 @@ def semantic_match_blocking(unmatched_df, df2, threshold=SEMANTIC_MATCH_THRESHOL
     
     # Load model
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"Loading NLP model '{MODEL_NAME}' on {device}")
+    if progress_callback:
+        progress_callback(5, f"🔄 Loading NLP model '{MODEL_NAME}' on {device}...")
     model = SentenceTransformer(MODEL_NAME, device=device)
     
     # Prepare texts for encoding
     df1_texts = unmatched_df[col1_cleaned].tolist()
     df2_texts = df2[col2_cleaned].tolist()
     
+    if progress_callback:
+        progress_callback(15, "🔄 Generating embeddings for reference records...")
     # Generate embeddings
-    print("Generating embeddings for reference records...")
     df2_embeddings = model.encode(df2_texts, convert_to_tensor=True, show_progress_bar=True)
     
-    print("Generating embeddings for unmatched records...")
+    if progress_callback:
+        progress_callback(40, "🔄 Generating embeddings for unmatched records...")
     df1_embeddings = model.encode(df1_texts, convert_to_tensor=True, show_progress_bar=True)
+    
+    if progress_callback:
+        progress_callback(65, "🔄 Performing semantic search...")
     
     # Forward search (df1 -> df2)
     print("\nPerforming forward search...")
