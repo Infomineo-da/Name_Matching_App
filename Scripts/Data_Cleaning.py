@@ -44,7 +44,13 @@ def clean_text(name: str, stop_words: list = None) -> str:
 
     # 2. Perform replacements BEFORE removing special characters
     for old, new in REPLACEMENTS.items():
-        cleaned = re.sub(r'\b' + re.escape(old) + r'\b', new, cleaned)
+        if old == "&":
+        # Special case for ampersand: allow spaces around it
+            cleaned = re.sub(r'\s*&\s*', f'{new}', cleaned)
+        else:
+        # Normal case: match whole words (case-insensitive)
+            cleaned = re.sub(r'\b' + re.escape(old) + r'\b', new, cleaned, flags=re.IGNORECASE)
+        #cleaned = re.sub(r'\b' + re.escape(old) + r'\b', new, cleaned)
     
     # 3. Remove Legal Entity Designators
     # Merge stop words with LEGAL_DESIGNATORS

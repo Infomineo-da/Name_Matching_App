@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import io
 from Data_Cleaning import clean_dataframe
-from Fuzzy_Matching import exact_match, fuzzy_match_blocking,build_final_output
+from Fuzzy_Matching import exact_match, fuzzy_match_blocking, build_final_output
+from Semantic_Matching import semantic_match_blocking
 
 
 
@@ -125,19 +126,29 @@ if uploaded_file and submitted:
             st.error(f"⚠️ Stage 2 failed: {e}")
             st.stop()
 
-    # Stage 3: Fuzzy Matching
-    with st.spinner(f'Stage 3/3: Performing fuzzy matching using {matching_method}...'):
+    # Stage 3: Advanced Matching (Fuzzy or Semantic)
+    with st.spinner(f'Stage 3/3: Performing {matching_method} matching...'):
         try:
-            stage3_matches = fuzzy_match_blocking(
-                unmatched_df,   # df1 records left unmatched
-                cleaned_df2,    # full df2 reference
-                method=matching_method,  
-                threshold=80    # adjust threshold as needed
-            )
-            st.success('Stage 3/3: Fuzzy matching completed!')
-            st.write(f"Fuzzy matching({matching_method}) results:")
+            if matching_method == "Semantic Matching (SentenceTransformer)":
+                stage3_matches = semantic_match_blocking(
+                    unmatched_df,   # df1 records left unmatched
+                    cleaned_df2,    # full df2 reference
+                    threshold=75    # adjust threshold as needed
+                )
+                match_type = "semantic"
+            else:
+                stage3_matches = fuzzy_match_blocking(
+                    unmatched_df,   # df1 records left unmatched
+                    cleaned_df2,    # full df2 reference
+                    method=matching_method,  
+                    threshold=80    # adjust threshold as needed
+                )
+                match_type = "fuzzy"
+            
+            st.success('Stage 3/3: Advanced matching completed!')
+            st.write(f"{match_type.capitalize()} matching results:")
             st.dataframe(stage3_matches.head())
-            stage3_matches.to_excel('Data/Output/matched_fuzzy.xlsx', index=False)
+            stage3_matches.to_excel(f'Data/Output/matched_{match_type}.xlsx', index=False)
         except Exception as e:
             st.error(f"⚠️ Stage 3 failed: {e}")
             st.stop()

@@ -226,10 +226,17 @@ def build_final_output(df1, matched_exact, matched_fuzzy):
         })
         final_output = pd.concat([final_output, exact_df], ignore_index=True)
     
-    # Process fuzzy matches
+    # Process fuzzy/semantic matches
     if not matched_fuzzy.empty:
-        col2_original = [c for c in matched_fuzzy.columns if "_" not in c][1]
-        col2_cleaned = [c for c in matched_fuzzy.columns if c.endswith('_cleaned')][1]
+        # First find the cleaned column that isn't col1_cleaned
+        all_cleaned_cols = [c for c in matched_fuzzy.columns if c.endswith('_cleaned')]
+        col2_cleaned = next(col for col in all_cleaned_cols if col != col1_cleaned)
+        
+        # Find the original column by removing the '_cleaned' suffix
+        col2_base = col2_cleaned.replace('_cleaned', '')
+        col2_original = next(col for col in matched_fuzzy.columns 
+                           if not col.endswith(('_cleaned', '_sorted')) 
+                           and col.replace('_cleaned', '') == col2_base)
         
         fuzzy_df = pd.DataFrame({
             col1_original: matched_fuzzy[col1_original],
