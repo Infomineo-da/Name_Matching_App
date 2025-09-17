@@ -40,7 +40,7 @@ if uploaded_file:
 dropdown, score, icon = st.columns([0.80, 0.15, 0.05])  # keep dropdown and helper aligned
 with dropdown:
     matching_method = st.selectbox(
-        "**Choose a matching technique**:",
+        "**Choose a matching technique**:click on the ❗ icon for details.",
         ["ratio", "partial_ratio", "token_sort_ratio", "token_set_ratio",
          "Semantic Matching"]
     )
@@ -70,21 +70,22 @@ st.write(f"You selected: **{matching_method}** with threshold of **{score}**")
 # Wrap text_area + button in a form
 with st.form("stop_words_form"):
     stop_words = st.text_area(
-    "**Enter words that should be excluded from the comparison** (comma separated):",
+    "**Ignore words when comparing names**: Add words you don’t want to affect the match (comma separated).",
     placeholder="e.g. station, fuel, gas, corp, ltd, inc, group, university, hospital, restaurant"
     )
     st.caption(
-    "These are common or irrelevant terms that don’t change the identity of the name:\n"
+    "These are common or generic words that don’t change the actual name:\n"
     "- For gas stations → station, fuel, gas, etc.\n"
     "- For companies → corp, ltd, inc, co, group, etc.\n"
     "- For hospitals → hospital, clinic, medical center, etc.\n"
+    "- You may also ignore common words like -> the, in, a, of, over, etc. but be careful! Sometimes they are part of the real name"
     )
     submitted = st.form_submit_button(label="Proceed..")
 
 # Process and show the provided stop words after submission
 if submitted:
     stop_words_list = [w.strip() for w in stop_words.split(",") if w.strip()]
-    st.write("Stop words entered:")
+    st.write("Ignored words:")
     st.write("➡",", ".join(stop_words_list))
 
 # Process the data if file is uploaded and stop words are submitted
