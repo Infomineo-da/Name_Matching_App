@@ -13,7 +13,7 @@ st.set_page_config(page_title="Text Matching App 🔍", layout="wide")
 st.title("Text Matching App 🔍")
 
 # Upload Section
-uploaded_file = st.file_uploader("**Upload your Excel file**: containing only the two columns to match.", type=["xlsx", "xls"])
+uploaded_file = st.file_uploader("**Upload your Excel file**: containing only the two **text** columns to match.", type=["xlsx", "xls"])
 
 
 
@@ -37,17 +37,19 @@ if uploaded_file:
     
 
 # Matching Techniques Dropdown with Helper Icon
-dropdown, icon = st.columns([0.95, 0.05])  # keep dropdown and helper aligned
+dropdown, score, icon = st.columns([0.80, 0.15, 0.05])  # keep dropdown and helper aligned
 with dropdown:
     matching_method = st.selectbox(
         "**Choose a matching technique**:",
         ["ratio", "partial_ratio", "token_sort_ratio", "token_set_ratio",
          "Semantic Matching"]
     )
+with score:
+    score=st.number_input("Minimum score threshold.", min_value=60, max_value=100, value=75, step=1)
 with icon:
     # Push popover down a bit to alighn with the title
     st.markdown("<br>", unsafe_allow_html=True)
-    with st.popover("❓"):
+    with st.popover("❗",help="Description of matching methods"):
         st.markdown("""
         #### **Choose the matching methodology**
         ##### **➡ FuzzyWuzzy**
@@ -62,7 +64,7 @@ with icon:
         Sentence transformers capture semantic meaning but may over-match by treating related concepts as equivalent, leading to false positives. Fuzzy matching, on the other hand, focuses on text similarity but may under-match when the same concept is expressed in different wording.
         """)
 
-st.write("You selected:", matching_method)
+st.write(f"You selected: **{matching_method}** with threshold of **{score}**")
 
 # Stop Words Input
 # Wrap text_area + button in a form
@@ -158,7 +160,7 @@ if uploaded_file and submitted:
                 stage3_matches = semantic_match_blocking(
                     unmatched_df,   # df1 records left unmatched
                     cleaned_df2,    # full df2 reference
-                    threshold=75,    # adjust threshold as needed
+                    threshold=score,    # adjust threshold as needed
                     progress_callback=lambda p, msg: (progress_bar.progress(p), status_text.text(msg))
                 )
                 match_type = "semantic"
@@ -168,7 +170,7 @@ if uploaded_file and submitted:
                     unmatched_df,   # df1 records left unmatched
                     cleaned_df2,    # full df2 reference
                     method=matching_method,  
-                    threshold=80,    # adjust threshold as needed
+                    threshold=score,    # adjust threshold as needed
                     progress_callback=lambda p, msg: (progress_bar.progress(p), status_text.text(msg))
                 )
                 match_type = "fuzzy"
