@@ -13,9 +13,7 @@ st.set_page_config(page_title="Text Matching App 🔍", layout="wide")
 st.title("Text Matching App 🔍")
 
 # Upload Section
-uploaded_file = st.file_uploader("**Upload your Excel file**: containing only the two **text** columns to match.", type=["xlsx", "xls"])
-
-
+uploaded_file = st.file_uploader("**Upload your Excel file**: containing two **text** columns to match.", type=["xlsx", "xls"])
 
 # Preview uploaded file
 if uploaded_file:
@@ -23,17 +21,56 @@ if uploaded_file:
         # Read the uploaded file
         df = pd.read_excel(uploaded_file)
 
-        # Validation: check column count
-        if df.shape[1] != 2:
-            st.error("❌ The file must have exactly 2 columns.")
-            uploaded_file = None  # reset to avoid further processing
-        else:
-            with st.spinner(''):
-                st.write("Preview of uploaded file:")
-                st.dataframe(df.head())
+        # HANDLING Empty File
+        if df.empty:
+            st.error("❌ The file is empty.")
+            uploaded_file = None
+            st.stop()
+            
+        # Function to check if a column is text type
+        def is_text_column(series):
+            return series.dtype == 'object' or series.dtype == 'string'
+            
+        # Get list of text columns
+        text_columns = [col for col in df.columns if is_text_column(df[col])]
+        
+        if len(text_columns) < 2:
+            st.error("❌ The file must have at least 2 text columns. Please check your data types.")
+            st.write("Found text columns:", ", ".join(text_columns) if text_columns else "None")
+            non_text = [f"{col} ({df[col].dtype})" for col in df.columns if col not in text_columns]
+            st.write("Non-text columns:", ", ".join(non_text))
+            uploaded_file = None
+            st.stop()
 
+        # Let user select which 2 columns to use
+        if len(text_columns) == 2:
+            df = df[text_columns]
+        else:  # More than 2 text columns
+            st.info("ℹ️ Please select exactly two text columns to match.")
+            selected_cols = st.multiselect(
+                "**Select exactly two text columns for matching:**",
+                text_columns,  # Only show text columns as options
+                default=text_columns[:] if len(text_columns) >= 2 else text_columns
+            )
+            if len(selected_cols) != 2:
+                st.warning("Please select exactly two columns to proceed.")
+                uploaded_file = None
+                st.stop()
+            else:
+                # Verify selected columns are text type (double check)
+                if not all(is_text_column(df[col]) for col in selected_cols):
+                    st.error("❌ All selected columns must be text type.")
+                    uploaded_file = None
+                    st.stop()
+                df = df[selected_cols]
+
+        with st.spinner(''):
+            st.write("Preview of uploaded file:")
+            st.dataframe(df.head())
+        
     except Exception as e:
         st.error(f"Error reading file: {e}")
+        st.stop()
     
 
 # Matching Techniques Dropdown with Helper Icon

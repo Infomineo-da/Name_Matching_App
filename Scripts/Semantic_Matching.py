@@ -3,12 +3,37 @@ from sentence_transformers import SentenceTransformer, util
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
+import streamlit as st
 
 # Constants
-#MODEL_NAME = 'all-MiniLM-L6-v2'  # Fast and efficient model with good performance
 MODEL_NAME = 'all-mpnet-base-v2'  
-
 SEMANTIC_MATCH_THRESHOLD = 75  # Score threshold for accepting matches (0-100 scale)
+
+@st.cache_resource(show_spinner="Loading NLP model...")
+def load_semantic_model():
+    """
+    Load and cache the SentenceTransformer model.
+    Uses Streamlit's cache_resource to ensure the model is loaded only once
+    and reused across all runs.
+    """
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = SentenceTransformer(MODEL_NAME, device=device)
+    return model
+
+@st.cache_data(show_spinner=False)
+def generate_text_embeddings(texts, model_name: str):
+    """
+    Generate and cache embeddings for a list of texts.
+    
+    Args:
+        texts: List of texts to encode
+        model_name: The name of the model, to ensure the cache is specific to the model being used.
+    
+    Returns:
+        torch.Tensor: Tensor containing the embeddings
+    """
+    model = load_semantic_model()  # Get the cached model
+    return model.encode(texts, convert_to_tensor=True, show_progress_bar=True)
 
 def semantic_match_blocking(unmatched_df, df2, threshold=SEMANTIC_MATCH_THRESHOLD, progress_callback=None):
     """
@@ -32,24 +57,28 @@ def semantic_match_blocking(unmatched_df, df2, threshold=SEMANTIC_MATCH_THRESHOL
     unmatched_df[col1_cleaned] = unmatched_df[col1_cleaned].fillna("").astype(str)
     df2[col2_cleaned] = df2[col2_cleaned].fillna("").astype(str)
     
-    # Load model
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # Get model instance (cached)
     if progress_callback:
-        progress_callback(5, f"🔄 Loading NLP model '{MODEL_NAME}' on {device}...")
-    model = SentenceTransformer(MODEL_NAME, device=device)
+        progress_callback(5, "🔄 Initializing semantic model...")
     
-    # Prepare texts for encoding
-    df1_texts = unmatched_df[col1_cleaned].tolist()
-    df2_texts = df2[col2_cleaned].tolist()
+    model = load_semantic_model()
+    model_id = id(model)  # Use model's id for cache invalidation
     
+    # Prepare texts, tuples are hashable for the cache
+    df1_texts = tuple(unmatched_df[col1_cleaned].tolist())
+    df2_texts = tuple(df2[col2_cleaned].tolist())
+    
+    # Generate embeddings with caching, passing the MODEL_NAME constant
     if progress_callback:
-        progress_callback(15, "🔄 Generating embeddings for reference records...")
-    # Generate embeddings
-    df2_embeddings = model.encode(df2_texts, convert_to_tensor=True, show_progress_bar=True)
+        progress_callback(15, "🔄 Generating embeddings for reference data...")
+    
+    # Pass MODEL_NAME as the cache key dependency
+    df2_embeddings = generate_text_embeddings(df2_texts, model_name=MODEL_NAME)
     
     if progress_callback:
         progress_callback(40, "🔄 Generating embeddings for unmatched records...")
-    df1_embeddings = model.encode(df1_texts, convert_to_tensor=True, show_progress_bar=True)
+    
+    df1_embeddings = generate_text_embeddings(df1_texts, model_name=MODEL_NAME)
     
     if progress_callback:
         progress_callback(65, "🔄 Performing semantic search...")
