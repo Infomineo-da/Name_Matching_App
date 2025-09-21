@@ -3,9 +3,8 @@ import pandas as pd
 import io
 from Data_Cleaning import clean_dataframe
 from Fuzzy_Matching import exact_match, fuzzy_match_blocking, build_final_output
+from Hypird_Matching import hybrid_match_blocking
 from Semantic_Matching import semantic_match_blocking
-
-
 
 st.set_page_config(page_title="Text Matching App 🔍", layout="wide")
 
@@ -79,7 +78,7 @@ with dropdown:
     matching_method = st.selectbox(
         "**Choose a matching technique**:click on the ❗ icon for details.",
         ["ratio", "partial_ratio", "token_sort_ratio", "token_set_ratio",
-         "Semantic Matching"]
+         "Semantic Matching","Hybrid (Fuzzy + Semantic)"]
     )
 with score:
     score=st.number_input("Minimum score threshold.", min_value=60, max_value=100, value=75, step=1)
@@ -202,6 +201,16 @@ if uploaded_file and submitted:
                     progress_callback=lambda p, msg: (progress_bar.progress(p), status_text.text(msg))
                 )
                 match_type = "semantic"
+            elif matching_method == "Hybrid (Fuzzy + Semantic)":
+                stage3_matches = hybrid_match_blocking(
+                unmatched_df,
+                cleaned_df2,
+                threshold=score,
+                fuzzy_method="token_set_ratio",   # default fuzzy method
+                semantic_threshold=score,         # reuse same threshold
+                progress_callback=lambda p, msg: (progress_bar.progress(p), status_text.text(msg))
+                )
+                match_type = "hybrid"
             else:
                 status_text.text("🔄 Preparing fuzzy matching...")
                 stage3_matches = fuzzy_match_blocking(
